@@ -17,10 +17,10 @@ class MenuItem(models.Model):
     level = models.IntegerField(ugettext_lazy('level'), default=0, editable=False)
     rank = models.IntegerField(ugettext_lazy('rank'), default=0, editable=False)
     menu = models.ForeignKey('Menu', related_name='contained_items', verbose_name=ugettext_lazy('menu'), null=True, blank=True, editable=False)
-    
+
     def __unicode__(self):
         return self.caption
-    
+
     def save(self, force_insert=False, **kwargs):
         from treemenus.utils import clean_ranks
 
@@ -30,7 +30,7 @@ class MenuItem(models.Model):
             self.level = self.parent.level + 1
         else:
             self.level = 0
-        
+
         if self.pk:
             new_parent = self.parent
             old_parent = MenuItem.objects.get(pk=self.pk).parent
@@ -44,7 +44,7 @@ class MenuItem(models.Model):
                     clean_ranks(old_parent.children()) # Clean ranks for old siblings
             else:
                 super(MenuItem, self).save(force_insert, **kwargs) # Save menu item in DB
-        
+
         else: # Saving the menu item for the first time (i.e creating the object)
             if not self.has_siblings():
                 # No siblings - initial rank is 0.
@@ -54,21 +54,21 @@ class MenuItem(models.Model):
                 siblings = self.siblings().order_by('-rank')
                 self.rank = siblings[0].rank + 1
             super(MenuItem, self).save(force_insert, **kwargs)
-       
+
         # If level has changed, force children to refresh their own level
         if old_level != self.level:
             for child in self.children():
                 child.save() # Just saving is enough, it'll refresh its level correctly.
-    
 
-    
+
+
     def delete(self):
         from treemenus.utils import clean_ranks
         old_parent = self.parent
         super(MenuItem, self).delete()
         if old_parent:
             clean_ranks(old_parent.children())
-            
+
     def caption_with_spacer(self):
         spacer = ''
         for i in range(0, self.level):
@@ -76,13 +76,13 @@ class MenuItem(models.Model):
         if self.level > 0:
             spacer += u'|-&nbsp;'
         return spacer + self.caption
-    
+
     def get_flattened(self):
         flat_structure = [self]
         for child in self.children():
             flat_structure = chain(flat_structure, child.get_flattened())
         return flat_structure
-    
+
     def siblings(self):
         if not self.parent:
             return MenuItem.objects.none()
@@ -91,15 +91,18 @@ class MenuItem(models.Model):
                 return self.parent.children()
             else:
                 return self.parent.children().exclude(pk=self.pk)
+
     
     def has_siblings(self):
         return self.siblings().count() > 0
     
     def children(self):
-        _children = MenuItem.objects.filter(parent=self).order_by('rank',)
-        for child in _children:
-            child.parent = self # Hack to avoid unnecessary DB queries further down the track.
-        return _children
+        if not hasattr(self, '_children'):
+            self._children = MenuItem.objects.filter(parent=self).order_by('rank',)
+            for child in self._children:
+                child.parent = self # Hack to avoid unnecessary DB queries further down the track.
+        return self._children
+
     
     def has_children(self):
         return self.children().count() > 0
@@ -124,10 +127,10 @@ class Menu(models.Model):
         if self.root_item is not None:
             self.root_item.delete()
         super(Menu, self).delete()
-        
+
     def __unicode__(self):
         return self.name
-    
+
     class Meta:
         verbose_name = _('menu')
         verbose_name_plural = _('menus')
