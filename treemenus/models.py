@@ -109,7 +109,7 @@ class MenuItem(models.Model):
 
 
 class Menu(models.Model):
-    name = models.CharField(ugettext_lazy('name'), max_length=50)
+    name = models.CharField(ugettext_lazy('name'), max_length=50, unique=True)
     root_item = models.ForeignKey(MenuItem, related_name='is_root_item_of', verbose_name=ugettext_lazy('root item'), null=True, blank=True, editable=False)
     def save(self, force_insert=False, **kwargs):
         if not self.root_item:
