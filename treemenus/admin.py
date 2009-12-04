@@ -8,7 +8,9 @@ from django.contrib.admin.util import unquote
 from django.utils.translation import ugettext as _
 from django.utils.encoding import force_unicode
 from django.conf.urls.defaults import patterns
+from django.core import urlresolvers
 from django.core.exceptions import PermissionDenied
+from django import forms
 
 from treemenus.models import Menu, MenuItem
 from treemenus.utils import get_parent_choices, MenuItemChoiceField, move_item_or_clean_ranks
@@ -60,10 +62,21 @@ class MenuItemAdmin(admin.ModelAdmin):
             return HttpResponseRedirect("../../")
 
     def get_form(self, request, obj=None, **kwargs):
-        form = super(MenuItemAdmin, self).get_form(request, obj, **kwargs)
+        Form = super(MenuItemAdmin, self).get_form(request, obj, **kwargs)
+        class MyMenuItemForm(Form):
+            def clean_named_url(self):
+                if 'named_url' in self.cleaned_data:
+                    data = self.cleaned_data['named_url']
+                    try:
+                        urlresolvers.reverse(data)
+                    except urlresolvers.NoReverseMatch:
+                        raise forms.ValidationError(u'This is not a valid URL.')
+                    else:
+                        return data
+        Form = MyMenuItemForm
         choices = get_parent_choices(self._menu, obj)
-        form.base_fields['parent'] = MenuItemChoiceField(choices=choices)
-        return form
+        Form.base_fields['parent'] = MenuItemChoiceField(choices=choices)
+        return Form
 
 class MenuAdmin(admin.ModelAdmin):
     menu_item_admin_class = MenuItemAdmin
