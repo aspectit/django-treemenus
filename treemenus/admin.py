@@ -65,14 +65,14 @@ class MenuItemAdmin(admin.ModelAdmin):
         Form = super(MenuItemAdmin, self).get_form(request, obj, **kwargs)
         class MyMenuItemForm(Form):
             def clean_named_url(self):
-                if 'named_url' in self.cleaned_data:
-                    data = self.cleaned_data['named_url']
-                    try:
+                data = self.cleaned_data.get('named_url')
+                try:
+                    if data:
                         urlresolvers.reverse(data)
-                    except urlresolvers.NoReverseMatch:
-                        raise forms.ValidationError(u'This is not a valid URL.')
-                    else:
-                        return data
+                except urlresolvers.NoReverseMatch:
+                    raise forms.ValidationError(u'This is not a valid URL.')
+                else:
+                    return data
         Form = MyMenuItemForm
         choices = get_parent_choices(self._menu, obj)
         Form.base_fields['parent'] = MenuItemChoiceField(choices=choices)
