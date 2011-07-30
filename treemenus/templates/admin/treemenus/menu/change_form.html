@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load i18n adminmedia %}
+{% load i18n l10n adminmedia %}
 
 
 {% block after_related_objects %}
@@ -38,7 +38,7 @@
 					</td>
 				{% else %}
 					<td width="35%">
-						<a href="items/{{ menu_item.pk }}/">{{ menu_item.caption_with_spacer|safe }}</a>
+						<a href="items/{{ menu_item.pk|unlocalize }}/">{{ menu_item.caption_with_spacer|safe }}</a>
 					</td>
 					<td width="25%">
 						{{ menu_item.url }}
